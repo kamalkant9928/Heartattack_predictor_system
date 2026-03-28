@@ -15,7 +15,15 @@ scaler_path = os.path.join(BASE_DIR, "scaler.pkl")
 st.write("Model path:", model_path)
 st.write("Files in directory:", os.listdir(BASE_DIR))
 
-model = pickle.load(open(model_path, "rb"))
-scaler = pickle.load(open(scaler_path, "rb"))
+# ✅ Safe loading (IMPORTANT FIX)
+try:
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
 
-st.success("Model Loaded Successfully ✅")
+    with open(scaler_path, "rb") as f:
+        scaler = pickle.load(f)
+
+    st.success("Model Loaded Successfully ✅")
+
+except Exception as e:
+    st.error(f"Error loading model: {e}")
