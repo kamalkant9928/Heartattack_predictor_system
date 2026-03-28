@@ -1,58 +1,50 @@
-from fastapi import FastAPI
+import streamlit as st
 import numpy as np
 import pickle
-from pydantic import BaseModel
+import os
 
-# Load model & scaler
-model = pickle.load(open('heart_model.pkl', 'rb'))
-scaler = pickle.load(open('scaler.pkl', 'rb'))
+st.title("❤️ Heart Disease Prediction")
 
-app = FastAPI()
+# Safe loading
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Input schema (VERY IMPORTANT for production)
-class HeartData(BaseModel):
-    age: float
-    sex: int
-    cp: int
-    trestbps: float
-    chol: float
-    fbs: int
-    restecg: int
-    thalach: float
-    exang: int
-    oldpeak: float
-    slope: int
-    ca: int
-    thal: int
+model_path = os.path.join(BASE_DIR, "heart_model.pkl")
+scaler_path = os.path.join(BASE_DIR, "scaler.pkl")
 
-# Root route (for testing)
-@app.get("/")
-def home():
-    return {"message": "Heart Disease Prediction API is running"}
+# Debug
+st.write("Files:", os.listdir(BASE_DIR))
 
-# Prediction route
-@app.post("/predict")
-def predict(data: HeartData):
-    try:
-        # Convert input to array
-        input_data = np.array([[ 
-            data.age, data.sex, data.cp, data.trestbps, data.chol,
-            data.fbs, data.restecg, data.thalach, data.exang,
-            data.oldpeak, data.slope, data.ca, data.thal
-        ]])
+# Load model safely
+with open(model_path, "rb") as f:
+    model = pickle.load(f)
 
-        # Scale input
-        input_scaled = scaler.transform(input_data)
+with open(scaler_path, "rb") as f:
+    scaler = pickle.load(f)
 
-        # Predict
-        prediction = model.predict(input_scaled)[0]
+# Inputs
+age = st.number_input("Age", 1, 100)
+sex = st.selectbox("Sex", [0,1])
+cp = st.selectbox("Chest Pain", [0,1,2,3])
+trestbps = st.number_input("BP")
+chol = st.number_input("Cholesterol")
+fbs = st.selectbox("FBS", [0,1])
+restecg = st.selectbox("ECG", [0,1,2])
+thalach = st.number_input("Max HR")
+exang = st.selectbox("Exang", [0,1])
+oldpeak = st.number_input("Oldpeak")
+slope = st.selectbox("Slope", [0,1,2])
+ca = st.selectbox("CA", [0,1,2,3])
+thal = st.selectbox("Thal", [0,1,2,3])
 
-        result = "Heart Disease Detected" if prediction == 1 else "No Heart Disease"
+if st.button("Predict"):
+    input_data = np.array([[age, sex, cp, trestbps, chol, fbs,
+                            restecg, thalach, exang, oldpeak,
+                            slope, ca, thal]])
 
-        return {
-            "prediction": int(prediction),
-            "result": result
-        }
+    input_scaled = scaler.transform(input_data)
+    pred = model.predict(input_scaled)[0]
 
-    except Exception as e:
-        return {"error": str(e)}
+    if pred == 1:
+        st.error("⚠️ Heart Disease Detected")
+    else:
+        st.success("✅ No Heart Disease")
